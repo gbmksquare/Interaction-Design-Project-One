@@ -11,8 +11,8 @@ const int pinX = A3;
 const int pinY = A2;      
 const int pinZ = A1;      
 
-const int pinsWhite[3] = {9, 10, 11};
-const int pinBlue = 6;
+int pinsWhite[3] = {9, 10, 11};
+int pinBlue = 6;
 
 // Settings
 int calibrationX = 0;
@@ -79,10 +79,11 @@ void lightFadeOut(int pin, int start, int end) {
   for (int i = start; i >= end; i--) {
     analogWrite(pin, i);
     delay(fadeDelay);
+  }
 }
 
 void lightFadeOut(int pin) {
-  lighFadeOut(pin, 255, 0);
+  lightFadeOut(pin, 255, 0);
 }
 
 void lightFlicker(int pin, int count) {
@@ -100,10 +101,14 @@ bool shouldLightOn() {
     accelerationY > calibrationY + calibrationOffset ||
     accelerationZ < calibrationZ - calibrationOffset ||
     accelerationZ > calibrationZ + calibrationOffset) {
-      return true
+      return true;
     } else {
-      return false
+      return false;
     }
+}
+
+int count(int array[]) {
+  return sizeof(array) / sizeof(int);
 }
 
 // Application
@@ -117,7 +122,7 @@ void setup() {
   for (int i = 0; i < count(pinsWhite); i++) {
     int pin = pinsWhite[i];
     setOutputPin(pin);
-  }0
+  }
 
   digitalWrite(pinGround, LOW);
   digitalWrite(pinPower, HIGH);
@@ -140,15 +145,15 @@ void loop() {
   if (shouldLightOn() == true) {
     // All lights on
     for (int i = 0; i < count(pinsWhite); i++) {
-      lightsFadeIn(pinsWhite[i]);
+      lightFadeIn(pinsWhite[i]);
     }
-    lightsFadeIn(pinBlue);
+    lightFadeIn(pinBlue);
   } else {
     // Blue light on, White lights off
     for (int i = 0; i < count(pinsWhite); i++) {
-      lightsFadeOut(pinsWhite[i]);
+      lightFadeOut(pinsWhite[i]);
     }
-    lightsFadeIn(pinBlue, 0, 255/2);
+    lightFadeIn(pinBlue, 0, 255/2);
   }
   loopCount++;
 }
