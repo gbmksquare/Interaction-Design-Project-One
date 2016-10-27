@@ -11,8 +11,8 @@ const int pinX = A3;
 const int pinY = A2;      
 const int pinZ = A1;      
 
-const int pinWhite = 10;
-const int pinBlue = 9;
+const int pinsWhite[3] = {9, 10, 11};
+const int pinBlue = 6;
 
 // Settings
 int calibrationX = 0;
@@ -27,7 +27,7 @@ int accelerationY = 0;
 int accelerationZ = 0;
 int loopCount = 0;
 
-// Helper
+// Log
 void logHeader() {
   Serial.println("X\tY\tZ\t");
 }
@@ -39,6 +39,7 @@ void logAcceleration() {
   Serial.print("\tZ:\t"); Serial.println(accelerationZ);
 }
 
+// Setup
 void setOutputPin(int pin) {
   pinMode(pin, OUTPUT);
 }
@@ -55,30 +56,43 @@ void readAcceleration() {
   accelerationX = analogRead(pinX);
   accelerationY = analogRead(pinY);
   accelerationZ = analogRead(pinZ);
-  loopCount++;
+}
+
+// Light
+void lightFadeIn(int pin, int start, int end) {
+  if (start < 0) { start = 0; }
+  if (end > 255) { end = 255; }
+  if (start > end) { return; }
+  for (int i = start; i <= end; i++) {
+    analogWrite(pin, i);
+  }
 }
 
 void lightFadeIn(int pin) {
-  for (int i = 0; i <= 255; i++) {
+  lightFadeIn(pin, 0, 255);
+}
+
+void lightFadeOut(int pin, int start, int end) {
+  if (start < 0) { start = 0; }
+  if (start > 255) { end = 255; }
+  if (start < end) { return; }
+  for (int i = start; i >= end; i--) {
     analogWrite(pin, i);
     delay(fadeDelay);
-  }
 }
 
 void lightFadeOut(int pin) {
-  for (int i = 255; i >=0; i--) {
-    analogWrite(pin, i);
-    delay(fadeDelay);
-  }
+  lighFadeOut(pin, 255, 0);
 }
 
-void lightFlicker(int count) {
+void lightFlicker(int pin, int count) {
   for (int i = 0; i < count; i++) {
-    lightFadeIn(pinWhite);
-    lightFadeOut(pinWhite);
+    lightFadeIn(pin);
+    lightFadeOut(pin);
   }
 }
 
+// Helper
 bool shouldLightOn() {
   if (accelerationX < calibrationX - calibrationOffset ||
     accelerationX > calibrationX + calibrationOffset ||
@@ -99,8 +113,11 @@ void setup() {
 
   setOutputPin(pinGround);
   setOutputPin(pinPower);
-  setOutputPin(pinWhite);
   setOutputPin(pinBlue);
+  for (int i = 0; i < count(pinsWhite); i++) {
+    int pin = pinsWhite[i];
+    setOutputPin(pin);
+  }0
 
   digitalWrite(pinGround, LOW);
   digitalWrite(pinPower, HIGH);
@@ -109,10 +126,10 @@ void setup() {
   readAcceleration();
   setCalibration();
 
-  logHeader();
-
   // Ready
-  lightFlicker(2);
+  logHeader();
+  lightFlicker(pinsWhite[0], 2);
+  lightFadeIn(pinBlue, 255/2);
   delay(5000);
 }
 
@@ -121,19 +138,17 @@ void loop() {
   logAcceleration();
   
   if (shouldLightOn() == true) {
-    if (loopCount < 100) {
-      Serial.println("BLUE");
-      digitalWrite(pinWhite, HIGH);
-      digitalWrite(pinBlue, LOW);
-    } else if (loopCount < 130) {
-      Serial.println("YELLOW");
-      digitalWrite(pinWhite, LOW);
-      digitalWrite(pinBlue, HIGH);
-    } else {
-      loopCount = 0;
+    // All lights on
+    for (int i = 0; i < count(pinsWhite); i++) {
+      lightsFadeIn(pinsWhite[i]);
     }
+    lightsFadeIn(pinBlue);
   } else {
-    digitalWrite(pinWhite, LOW);
-    digitalWrite(pinBlue, LOW);
+    // Blue light on, White lights off
+    for (int i = 0; i < count(pinsWhite); i++) {
+      lightsFadeOut(pinsWhite[i]);
+    }
+    lightsFadeIn(pinBlue, 0, 255/2);
   }
+  loopCount++;
 }
