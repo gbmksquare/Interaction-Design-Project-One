@@ -27,6 +27,7 @@ int accelerationY = 0;
 int accelerationZ = 0;
 int loopCount = 0;
 
+// Helper
 void logHeader() {
   Serial.println("X\tY\tZ\t");
 }
@@ -78,6 +79,20 @@ void lightFlicker(int count) {
   }
 }
 
+bool shouldLightOn() {
+  if (accelerationX < calibrationX - calibrationOffset ||
+    accelerationX > calibrationX + calibrationOffset ||
+    accelerationY < calibrationY - calibrationOffset ||
+    accelerationY > calibrationY + calibrationOffset ||
+    accelerationZ < calibrationZ - calibrationOffset ||
+    accelerationZ > calibrationZ + calibrationOffset) {
+      return true
+    } else {
+      return false
+    }
+}
+
+// Application
 void setup() {
   // Setup
   Serial.begin(9600); // Start communication
@@ -104,14 +119,8 @@ void setup() {
 void loop() {
   readAcceleration();
   logAcceleration();
-
-  if (accelerationX < calibrationX - calibrationOffset ||
-    accelerationX > calibrationX + calibrationOffset ||
-    accelerationY < calibrationY - calibrationOffset ||
-    accelerationY > calibrationY + calibrationOffset ||
-    accelerationZ < calibrationZ - calibrationOffset ||
-    accelerationZ > calibrationZ + calibrationOffset) {
-
+  
+  if (shouldLightOn() == true) {
     if (loopCount < 100) {
       Serial.println("BLUE");
       digitalWrite(pinWhite, HIGH);
