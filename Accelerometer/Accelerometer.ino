@@ -14,12 +14,17 @@ const int pinZ = A1;
 int pinsWhite[3] = {9, 10, 11};
 int pinBlue = 6;
 
+const int COUNT_PINS_WHITE = 3;
+
+int lightOnWhite = false;
+int lightOnBlue = false;
+
 // Settings
 int calibrationX = 0;
 int calibrationY = 0;
 int calibrationZ = 0;
 int calibrationOffset = 50;
-int fadeDelay = 2;
+int fadeDelay = 1;
 
 // Values
 int accelerationX = 0;
@@ -59,38 +64,60 @@ void readAcceleration() {
 }
 
 // Light
-void lightFadeIn(int pin, int start, int end) {
+void lightsFadeIn(int pins[], int pinsCount, int start, int end) {
   if (start < 0) { start = 0; }
   if (end > 255) { end = 255; }
   if (start > end) { return; }
   for (int i = start; i <= end; i++) {
-    analogWrite(pin, i);
+    for (int index = 0; index < pinsCount; index++) {
+      int pin = pins[index];
+      analogWrite(pin, i);
+      delay(fadeDelay);
+    }
   }
+}
+
+void lightFadeIn(int pin, int start, int end) {
+  int pins[] = {pin};
+  lightsFadeIn(pins, 1, start, end);
 }
 
 void lightFadeIn(int pin) {
   lightFadeIn(pin, 0, 255);
 }
 
-void lightFadeOut(int pin, int start, int end) {
+void lightsFadeOut(int pins[], int pinsCount, int start, int end) {
   if (start < 0) { start = 0; }
   if (start > 255) { end = 255; }
   if (start < end) { return; }
   for (int i = start; i >= end; i--) {
-    analogWrite(pin, i);
-    delay(fadeDelay);
+    for (int index = 0; index < pinsCount; index++) {
+      int pin = pins[index];
+      analogWrite(pin, i);
+      delay(fadeDelay);
+    }
   }
+}
+
+void lightFadeOut(int pin, int start, int end) {
+  int pins[] = {pin};
+  lightsFadeOut(pins, 1, start, end);
 }
 
 void lightFadeOut(int pin) {
   lightFadeOut(pin, 255, 0);
 }
 
-void lightFlicker(int pin, int count) {
-  for (int i = 0; i < count; i++) {
-    lightFadeIn(pin);
-    lightFadeOut(pin);
+void lightsFlicker(int pins[], int pinsCount, int flickerCount) {
+  for (int i = 0; i < flickerCount; i++) {
+    lightsFadeIn(pins, pinsCount, 0, 255);
+    lightsFadeOut(pins, pinsCount, 255, 0);
   }
+}
+
+void lightFlicker(int pin, int flickerCount) {
+  int pins[] = {pin};
+  lightsFlicker(pins, 1, flickerCount);
 }
 
 // Helper
@@ -107,10 +134,6 @@ bool shouldLightOn() {
     }
 }
 
-int count(int array[]) {
-  return sizeof(array) / sizeof(int);
-}
-
 // Application
 void setup() {
   // Setup
@@ -119,7 +142,7 @@ void setup() {
   setOutputPin(pinGround);
   setOutputPin(pinPower);
   setOutputPin(pinBlue);
-  for (int i = 0; i < count(pinsWhite); i++) {
+  for (int i = 0; i < COUNT_PINS_WHITE; i++) {
     int pin = pinsWhite[i];
     setOutputPin(pin);
   }
@@ -133,27 +156,37 @@ void setup() {
 
   // Ready
   logHeader();
-  lightFlicker(pinsWhite[0], 2);
-  lightFadeIn(pinBlue, 255/2);
-  delay(5000);
+  lightsFlicker(pinsWhite, COUNT_PINS_WHITE, 2);
+  lightFadeIn(pinBlue);
+  delay(1000);
 }
 
 void loop() {
   readAcceleration();
   logAcceleration();
-  
-  if (shouldLightOn() == true) {
-    // All lights on
-    for (int i = 0; i < count(pinsWhite); i++) {
-      lightFadeIn(pinsWhite[i]);
+
+  bool shouldActivate = shouldLightOn();
+
+  if (shouldActivate == true) {
+    // Turn on white, turn off blue
+    if (lightOnWhite == false) {
+      lightsFadeIn(pinsWhite, COUNT_PINS_WHITE, 0, 255);
+      lightOnWhite = true;
     }
-    lightFadeIn(pinBlue);
+    if (lightOnBlue == true) {
+      lightFadeOut(pinBlue);
+      lightOnBlue = false;
+    }
   } else {
-    // Blue light on, White lights off
-    for (int i = 0; i < count(pinsWhite); i++) {
-      lightFadeOut(pinsWhite[i]);
+    // Turn off white, turn on blue
+    if (lightOnWhite == true) {
+      lightsFadeOut(pinsWhite, COUNT_PINS_WHITE, 255, 0);
+      lightOnWhite = false;
     }
-    lightFadeIn(pinBlue, 0, 255/2);
+    if (lightOnBlue == false) {
+      lightFadeIn(pinBlue, 0, 255);
+      lightOnBlue = true;
+    }
   }
   loopCount++;
 }
